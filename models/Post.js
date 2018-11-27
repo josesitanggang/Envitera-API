@@ -24,7 +24,7 @@ const PostSchema = new Schema({
   image: {
     type: String
   },
-  body:{
+  text:{
       type:String,
       required:true
   },
@@ -64,4 +64,4 @@ const PostSchema = new Schema({
   }
 });
 
-module.exports = Post = mongoose.model('profile', PostSchema);
+module.exports = Post = mongoose.model('Post', PostSchema);
