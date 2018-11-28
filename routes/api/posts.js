@@ -7,6 +7,7 @@ const validatePostInput = require('../../validation/post');
 const Post = require('../../models/Post');
 const Profile = require('../../models/Profile');
 
+
 router.get('/test',(req,res)=>{
     res.json({status:'success'});
 })
@@ -72,7 +73,52 @@ router.delete('/:id',passport.authenticate('jwt',{session:false}),(req,res)=>{
                     //Delete
                     post.remove().then(()=>res.json({success:true}))
                         .catch(err=> res.status(404).json({notpostfound:"No post found"}))
+                }).catch(err => res.status(404).json({notautorized:'User not autorized'}))
+        })
+})
+
+//  @route  POST api/posts/like/:id
+//  @desc   Delete Single Post by Id
+//  @access Private
+router.post('/like/:id',passport.authenticate('jwt',{session:false}),(req,res)=>{
+    Profile.findOne({user:req.user.id})
+        .then(profile=>{
+            Post.findById(req.params.id)
+                .then(post=>{
+                   //check user already liked
+                   if(post.likes.filter(like => like.user.toString()=== req.user.id).length > 0){
+                       return res.status(400).json({alreadyliked:"User alrady like this post"});
+                   }
+                   // add user id to likes array
+                   post.likes.unshift({user:req.user.id});
+                   post.save().then(post=> res.json(post));
                 })
+                .catch(err=> res.status(404).json({postnotfound:'No post found'}));
+        })
+})
+
+//  @route  POST api/posts/unlike/:id
+//  @desc   Delete Single Post by Id
+//  @access Private
+router.post('/unlike/:id',passport.authenticate('jwt',{session:false}),(req,res)=>{
+    Profile.findOne({user:req.user.id})
+        .then(profile =>{
+            Post.findById(req.params.id)
+                .then(post=> {
+                    if(post.likes.filter(like=>like.user.toString() === req.user.id).length===0){
+                        res.status(400)
+                            .json({alreadyliked:'You have not yel liked this post'})
+                    }
+                    //get remove index
+                    const index = post.likes
+                                    .map(item=>item.user.toString())
+                                    .indexOf(req.user.id)
+                    //splice 
+                    post.likes.splice(index,1);
+                    //save
+                    post.save().then(post=> res.json(post))
+                })
+                .catch(err=> res.status(404).json({postnotfound:'No Post Found'}))
         })
 })
 
