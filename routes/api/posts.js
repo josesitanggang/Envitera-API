@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const passport = require('passport');
 
 const validatePostInput = require('../../validation/post');
+const validateCommentInput = require('../../validation/comment');
 const Post = require('../../models/Post');
 const Profile = require('../../models/Profile');
 
@@ -121,5 +122,63 @@ router.post('/unlike/:id',passport.authenticate('jwt',{session:false}),(req,res)
                 .catch(err=> res.status(404).json({postnotfound:'No Post Found'}))
         })
 })
+
+// @route   POST api/posts/comment/:id
+// @desc    add comment
+// @access  private
+router.post('/comment/:id',passport.authenticate('jwt',{session:false}),(req,res)=>{
+
+    const {errors, isValid} = validateCommentInput(req.body)
+    //check validation
+    if(!isValid){
+        return res.status(400).json(errors);
+    }
+
+    Post.findById(req.params.id)
+        .then(post=>{
+            const newComment={
+                text:req.body.text,
+                name:req.user.name,
+                avatar:req.user.avatar,
+                user: req.user.id
+            }
+
+            post.comments.unshift(newComment);
+            post.save().then(post=> res.json(post))
+        })
+        .catch(err => res.status(404).json({postnotfound:'No post Found'}))
+   
+})
+
+
+// @route   DELETE api/posts/comment/:id
+// @desc    remove comment
+// @access  private
+router.delete('/comment/:id/:comment_id',passport.authenticate('jwt',{session:false}),(req,res)=>{
+
+    Post.findById(req.params.id)
+        .then(post=>{
+            
+            //check to see comment exist
+            if(post.comments.
+                filter(comment => comment._id.toString()===req.params.comment_id)
+                .length===0){
+                    return res.status(404).json({commentnotexist:"Comment not exist"})
+                }
+
+                //get remove index
+                const index = post.comments
+                            .map(item=>item._id.toString())
+                            .indexOf(req.params.comment_id)
+                //splice 
+                post.comments.splice(index,1);
+                //save
+                post.save().then(post=> res.json(post))
+            
+        })
+        .catch(err => res.status(404).json({postnotfound:'No post Found'}))
+   
+})
+
 
 module.exports = router;
